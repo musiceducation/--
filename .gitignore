@@ -1,0 +1,10 @@
+# macOS 系统垃圾
+.DS_Store
+
+# 编辑器配置
+.cursor/
+.vscode/
+
+# 无关文件
+*.pdf
+*.xlsx
