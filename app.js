@@ -284,7 +284,6 @@ function initGame() {
     dom.errorDisplay.textContent = '0';
     dom.progressDisplay.textContent = '0%';
     dom.comboDisplay.textContent = '0';
-    dom.progressBar.style.width = '0%';
     dom.hiddenInput.value = '';
     dom.pauseBtn.classList.add('hidden');
 
@@ -327,6 +326,9 @@ function renderText() {
     progressContainer.appendChild(progressBar);
     dom.textDisplay.appendChild(progressContainer);
     
+    const textContent = document.createElement('div');
+    textContent.className = 'text-content';
+    
     const lines = state.targetText.split('\n');
     let index = 0;
 
@@ -346,9 +348,10 @@ function renderText() {
             index++;
         }
 
-        dom.textDisplay.appendChild(lineDiv);
+        textContent.appendChild(lineDiv);
     });
 
+    dom.textDisplay.appendChild(textContent);
     dom.progressBar = document.getElementById('progressBar');
     
     const current = dom.textDisplay.querySelector('.current');
@@ -403,13 +406,18 @@ function updateStats() {
         ? Math.round((state.userInput.length / state.targetText.length) * 100) 
         : 0;
     dom.progressDisplay.textContent = `${progress}%`;
-    dom.progressBar.style.width = `${progress}%`;
+    if (dom.progressBar) {
+        dom.progressBar.style.width = `${progress}%`;
+    }
     
     dom.comboDisplay.textContent = state.currentStreak;
-    if (state.currentStreak >= 10) {
-        dom.comboDisplay.parentElement.parentElement.classList.add('streak-hot');
-    } else {
-        dom.comboDisplay.parentElement.parentElement.classList.remove('streak-hot');
+    const comboCard = dom.comboDisplay.closest('.stat-card');
+    if (comboCard) {
+        if (state.currentStreak >= 10) {
+            comboCard.classList.add('streak-hot');
+        } else {
+            comboCard.classList.remove('streak-hot');
+        }
     }
     
     const accuracy = state.totalKeysPressed > 0 
@@ -617,6 +625,9 @@ function setupEventListeners() {
         dom.loginAccount.focus();
     });
 
+    // Login modal cannot be closed by clicking outside - students must login
+    // Only close via successful login or logout
+
     dom.loginPassword.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') handleLogin();
     });
@@ -625,8 +636,16 @@ function setupEventListeners() {
         if (e.key === 'Enter') dom.loginPassword.focus();
     });
 
-    // Open import modal
+    // Open import modal (requires login)
     dom.openImportBtn.addEventListener('click', () => {
+        // Check if student is logged in
+        if (!state.student.name) {
+            const loginModal = document.getElementById('loginModal');
+            if (loginModal) loginModal.classList.remove('hidden');
+            const loginAccount = document.getElementById('loginAccount');
+            if (loginAccount) loginAccount.focus();
+            return;
+        }
         dom.importModal.classList.remove('hidden');
         initGame();
     });
@@ -634,6 +653,19 @@ function setupEventListeners() {
     // Close import modal
     dom.importModalClose.addEventListener('click', () => {
         dom.importModal.classList.add('hidden');
+    });
+
+    // Close modals by clicking outside
+    dom.importModal.addEventListener('click', (e) => {
+        if (e.target === dom.importModal) {
+            dom.importModal.classList.add('hidden');
+        }
+    });
+
+    dom.resultModal.addEventListener('click', (e) => {
+        if (e.target === dom.resultModal) {
+            // Don't close result modal by clicking outside - results should be acknowledged
+        }
     });
 
     // Pause button
@@ -712,12 +744,16 @@ function setupEventListeners() {
         initGame();
     });
 
-    // Focus management
+    // Focus management - only allow game focus if logged in
     window.addEventListener('click', () => {
+        // Always prioritize login modal
+        if (!dom.loginModal.classList.contains('hidden')) {
+            dom.loginAccount.focus();
+            return;
+        }
         if (dom.resultModal.classList.contains('hidden') &&
             dom.importModal.classList.contains('hidden') &&
-            dom.loginModal.classList.contains('hidden') &&
-            !state.isPaused) {
+            !state.isPaused && state.student.name) {
             dom.hiddenInput.focus();
         }
     });
@@ -733,16 +769,22 @@ function init() {
         setupEventListeners();
         initGame();
 
-        // Show login modal on page load, hide login button
-        if (dom.loginModal) {
-            dom.loginModal.classList.remove('hidden');
-        }
-        if (dom.openLoginBtn) {
-            dom.openLoginBtn.classList.add('hidden');
-        }
-        if (dom.loginAccount) {
-            dom.loginAccount.focus();
-        }
+        // Show login modal on page load - login is required
+        setTimeout(() => {
+            const loginModal = document.getElementById('loginModal');
+            const openLoginBtn = document.getElementById('openLoginBtn');
+            const loginAccount = document.getElementById('loginAccount');
+
+            if (loginModal) {
+                loginModal.classList.remove('hidden');
+            }
+            if (openLoginBtn) {
+                openLoginBtn.classList.add('hidden');
+            }
+            if (loginAccount) {
+                loginAccount.focus();
+            }
+        }, 100);
     } catch (e) {
         console.error('初始化錯誤:', e);
     }
