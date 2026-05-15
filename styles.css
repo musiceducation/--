@@ -1,4 +1,4 @@
-/* ============================================
+                                                                                                        /* ============================================
    CSS Variables & Base Styles
    ============================================ */
 :root {
@@ -337,6 +337,7 @@ body {
     flex-direction: column;
     scroll-behavior: smooth;
     scroll-snap-type: y proximity;
+    overflow-x: auto;
 }
 
 .text-area .line-block {
@@ -388,6 +389,8 @@ body {
     flex: 1;
     overflow-y: auto;
     padding: 1.5rem 2rem;
+    overflow-x: auto;
+    max-width: 100%;
 }
 
 .text-content::-webkit-scrollbar {
@@ -407,6 +410,12 @@ body {
     display: block;
     margin-bottom: 1rem;
     line-height: 2.4;
+}
+
+.word-span {
+    display: inline;
+    white-space: nowrap;
+    word-break: keep-all;
 }
 
 .char {
@@ -437,7 +446,6 @@ body {
     border-bottom-color: #ca8a04;
     border-radius: 6px;
     box-shadow: 0 4px 12px rgba(234, 179, 8, 0.4), 0 0 20px rgba(234, 179, 8, 0.3);
-    transform: scale(1.08);
     z-index: 10;
     position: relative;
 }
@@ -454,13 +462,6 @@ body {
     text-decoration: underline wavy;
     text-decoration-color: var(--danger);
     text-decoration-thickness: 2px;
-    animation: errorShake 0.3s ease-in-out;
-}
-
-@keyframes errorShake {
-    0%, 100% { transform: translateX(0); }
-    20%, 60% { transform: translateX(-3px); }
-    40%, 80% { transform: translateX(3px); }
 }
 
 /* ============================================

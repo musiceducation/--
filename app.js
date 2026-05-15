@@ -362,9 +362,28 @@ function previewArticle() {
     }
 }
 
+function scrollToCurrentChar() {
+    const currentChar = dom.textDisplay.querySelector('.current');
+    const textContent = dom.textDisplay.querySelector('.text-content');
+    if (!currentChar || !textContent) return;
+
+    const currentLine = currentChar.closest('.line-block');
+    if (!currentLine) return;
+
+    const lineTop = currentLine.offsetTop;
+    const lineHeight = currentLine.offsetHeight;
+    const scrollTop = textContent.scrollTop;
+    const clientHeight = textContent.clientHeight;
+
+    const padding = lineHeight * 2;
+    if (lineTop + lineHeight > scrollTop + clientHeight - padding) {
+        textContent.scrollTop = lineTop + lineHeight - clientHeight + padding;
+    }
+}
+
 function renderText() {
     dom.textDisplay.innerHTML = '';
-    
+
     const progressContainer = document.createElement('div');
     progressContainer.className = 'progress-bar-container';
     const progressBar = document.createElement('div');
@@ -372,10 +391,10 @@ function renderText() {
     progressBar.id = 'progressBar';
     progressContainer.appendChild(progressBar);
     dom.textDisplay.appendChild(progressContainer);
-    
+
     const textContent = document.createElement('div');
     textContent.className = 'text-content';
-    
+
     const lines = state.targetText.split('\n');
     let index = 0;
 
@@ -383,11 +402,39 @@ function renderText() {
         const lineDiv = document.createElement('div');
         lineDiv.className = 'line-block';
 
-        [...lineText].forEach(char => {
-            const span = createCharSpan(char, index);
-            lineDiv.appendChild(span);
-            index++;
-        });
+        // Group characters into words (continuous non-space characters)
+        let currentWord = [];
+        let i = 0;
+
+        function flushWord() {
+            if (currentWord.length > 0) {
+                const wordSpan = document.createElement('span');
+                wordSpan.className = 'word-span';
+                currentWord.forEach(charData => {
+                    const span = createCharSpan(charData.char, charData.index, false);
+                    wordSpan.appendChild(span);
+                });
+                lineDiv.appendChild(wordSpan);
+                currentWord = [];
+            }
+        }
+
+        while (i < lineText.length) {
+            const char = lineText[i];
+
+            if (char === ' ') {
+                flushWord();
+                const spaceSpan = createCharSpan(' ', index, false);
+                lineDiv.appendChild(spaceSpan);
+                index++;
+                i++;
+            } else {
+                currentWord.push({ char, index });
+                index++;
+                i++;
+            }
+        }
+        flushWord();
 
         if (lineIdx < lines.length - 1) {
             const newlineSpan = createCharSpan('\n', index, true);
@@ -400,9 +447,9 @@ function renderText() {
 
     dom.textDisplay.appendChild(textContent);
     dom.progressBar = document.getElementById('progressBar');
-    
-    const current = dom.textDisplay.querySelector('.current');
-    // Don't scroll automatically to prevent bouncing
+
+    // Auto-scroll to current character position
+    requestAnimationFrame(() => scrollToCurrentChar());
 }
 
 function createCharSpan(char, index, isNewline = false) {
@@ -430,6 +477,11 @@ function updateHint() {
 
     if (nextChar === '\n') {
         getKey('key-enter')?.classList.add('active-hint');
+        return;
+    }
+
+    if (nextChar === '\t') {
+        getKey('key-tab')?.classList.add('active-hint');
         return;
     }
 
@@ -485,6 +537,38 @@ function handleInput(char) {
 
     state.totalKeysPressed++;
     const targetChar = state.targetText[state.userInput.length];
+
+    // Handle Tab character specially
+    if (char === '\t') {
+        state.totalKeysPressed++;
+        if (targetChar === '\t') {
+            state.correctKeys++;
+            state.currentStreak++;
+            if (state.currentStreak > state.bestStreak) {
+                state.bestStreak = state.currentStreak;
+            }
+            if (state.currentStreak % 10 === 0) {
+                AudioSystem.play('combo');
+            } else {
+                AudioSystem.play('correct');
+            }
+        } else {
+            state.errors++;
+            state.currentStreak = 0;
+            AudioSystem.play('error');
+            dom.errorDisplay.textContent = state.errors;
+        }
+        state.userInput += char;
+        renderText();
+        updateHint();
+        updateStats();
+
+        if (state.userInput.length >= state.targetText.length) {
+            endGame();
+        }
+        return;
+    }
+
     const isCorrect = char.toLowerCase() === targetChar.toLowerCase();
 
     if (isCorrect) {
@@ -749,27 +833,28 @@ function setupEventListeners() {
     // Keyboard event listeners
     window.addEventListener('keydown', (e) => {
         // Visual feedback for key press
-        const keyId = e.key === ' ' ? 'key-space' : 
+        const keyId = e.key === ' ' ? 'key-space' :
                       e.key === 'Enter' ? 'key-enter' :
                       e.key === 'Backspace' ? 'key-backspace' :
+                      e.key === 'Tab' ? 'key-tab' :
                       PUNC_MAP[e.key] || `key-${e.key.toLowerCase()}`;
         const keyEl = document.getElementById(keyId);
         if (keyEl) {
             keyEl.classList.add('pressed');
             setTimeout(() => keyEl.classList.remove('pressed'), 100);
         }
-        
+
         if (!dom.importModal.classList.contains('hidden') ||
             !dom.resultModal.classList.contains('hidden') ||
             !dom.loginModal.classList.contains('hidden')) return;
-        
+
         // Space to resume
         if (e.key === ' ' && state.isPaused) {
             togglePause();
             e.preventDefault();
             return;
         }
-        
+
         // Escape to pause
         if (e.key === 'Escape' && state.gameActive && !state.isPaused) {
             togglePause();
@@ -789,21 +874,35 @@ function setupEventListeners() {
         }
 
         if (e.key === 'Enter') {
-            handleInput('\n');
             e.preventDefault();
+            handleInput('\n');
+            // Block hiddenInput from processing Enter
+            dom.hiddenInput.dataset.blocked = 'true';
+            setTimeout(() => { dom.hiddenInput.dataset.blocked = ''; }, 100);
+            return;
         }
-        
-        // 檢查是否完成（備用檢查）
-        if (state.userInput.length >= state.targetText.length && state.gameActive) {
-            endGame();
+
+        if (e.key === 'Tab') {
+            e.preventDefault();
+            handleInput('\t');
+            dom.hiddenInput.dataset.blocked = 'true';
+            setTimeout(() => { dom.hiddenInput.dataset.blocked = ''; }, 100);
+            return;
         }
     });
 
     dom.hiddenInput.addEventListener('input', (e) => {
-        if (e.data) handleInput(e.data);
+        // Skip if blocked by keydown handler
+        if (dom.hiddenInput.dataset.blocked === 'true') return;
+
+        if (e.data) {
+            // Handle Shift+Letter combinations for capital letters
+            const char = e.data[e.data.length - 1];
+            if (char) handleInput(char);
+        }
         dom.hiddenInput.value = '';
-        
-        // 檢查是否完成
+
+        // Check if completed
         if (state.userInput.length >= state.targetText.length && state.gameActive) {
             endGame();
         }
