@@ -223,17 +223,43 @@ function loginSuccess(account, studentData) {
     state.student.account = account;
 
     dom.loginError.classList.remove('show');
-    dom.loginModal.classList.add('hidden');
     dom.studentInfoDisplay.textContent = `${studentData.name} (${studentData.classId})`;
 
     dom.loggedInName.textContent = studentData.name;
     dom.userAvatar.textContent = studentData.name.charAt(0);
     dom.loggedInInfo.classList.remove('hidden');
     dom.openLoginBtn.classList.add('hidden');
-    dom.actionBtnText.textContent = '載入 .txt 文字檔';
+    dom.actionBtnText.textContent = '更換文章 📝';
 
     dom.loginAccount.value = '';
     dom.loginPassword.value = '';
+
+    // 先關閉登入彈窗
+    dom.loginModal.classList.add('hidden');
+    
+    // 隱藏文章預覽提示
+    const previewEl = document.getElementById('textPreview');
+    if (previewEl) previewEl.classList.add('hidden');
+    
+    // 登入後自動載入預設文章
+    state.targetText = CONFIG.DEFAULT_ARTICLE;
+    state.userInput = '';
+    renderText();
+    updateHint();
+    
+    // 重置遊戲狀態
+    dom.timerDisplay.textContent = '05:00';
+    dom.speedDisplay.textContent = '0.00';
+    dom.accuracyDisplay.textContent = '100%';
+    dom.errorDisplay.textContent = '0';
+    dom.progressDisplay.textContent = '0%';
+    dom.comboDisplay.textContent = '0';
+    dom.pauseBtn.classList.add('hidden');
+    
+    // 延遲後聚焦輸入框
+    setTimeout(() => {
+        dom.hiddenInput.focus();
+    }, 100);
 }
 
 function handleLogout() {
@@ -246,6 +272,10 @@ function handleLogout() {
     dom.loginError.classList.remove('show');
     dom.actionBtnText.textContent = '載入 .txt 文字檔';
     dom.pauseBtn.classList.add('hidden');
+    
+    // 登出後顯示預設歡迎文字
+    state.targetText = CONFIG.DEFAULT_TEXT;
+    initGame();
 }
 
 // ============================================
@@ -315,6 +345,23 @@ function startCountdown(callback) {
     }, 800);
 }
 
+function previewArticle() {
+    const content = dom.articleInput.value.trim();
+    const charCountEl = document.getElementById('charCount');
+    
+    // Update character count if element exists
+    if (charCountEl) {
+        charCountEl.textContent = `${content.length} 字`;
+    }
+    
+    // Update article display preview when not in active game
+    if (content.length > 0 && !state.gameActive) {
+        state.targetText = content;
+        state.userInput = '';
+        renderText();
+    }
+}
+
 function renderText() {
     dom.textDisplay.innerHTML = '';
     
@@ -355,7 +402,7 @@ function renderText() {
     dom.progressBar = document.getElementById('progressBar');
     
     const current = dom.textDisplay.querySelector('.current');
-    if (current) current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    // Don't scroll automatically to prevent bouncing
 }
 
 function createCharSpan(char, index, isNewline = false) {
@@ -585,6 +632,13 @@ function togglePause() {
 }
 
 async function uploadResults(results) {
+    // 示範帳號不上傳成績
+    if (state.student.id === 'DEMO') {
+        dom.uploadStatus.textContent = '✅ 示範模式（成績不記錄）';
+        dom.uploadStatus.className = 'upload-status success';
+        return;
+    }
+    
     try {
         await fetch(CONFIG.SCRIPT_URL, {
             method: 'POST',
@@ -613,8 +667,17 @@ function setupEventListeners() {
         const file = e.target.files[0];
         if (!file) return;
         const reader = new FileReader();
-        reader.onload = (e) => { dom.articleInput.value = e.target.result; };
+        reader.onload = (e) => {
+            dom.articleInput.value = e.target.result;
+            // Auto-preview article when file is loaded
+            previewArticle();
+        };
         reader.readAsText(file);
+    });
+
+    // Auto-update preview when typing in article input
+    dom.articleInput.addEventListener('input', () => {
+        previewArticle();
     });
 
     // Login event listeners
@@ -636,6 +699,17 @@ function setupEventListeners() {
         if (e.key === 'Enter') dom.loginPassword.focus();
     });
 
+    // Prevent focus jumping in login modal - ensure clicks work properly
+    dom.loginAccount.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        e.target.focus();
+    });
+
+    dom.loginPassword.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        e.target.focus();
+    });
+
     // Open import modal (requires login)
     dom.openImportBtn.addEventListener('click', () => {
         // Check if student is logged in
@@ -647,7 +721,7 @@ function setupEventListeners() {
             return;
         }
         dom.importModal.classList.remove('hidden');
-        initGame();
+        dom.articleInput.focus();
     });
 
     // Close import modal
@@ -718,11 +792,21 @@ function setupEventListeners() {
             handleInput('\n');
             e.preventDefault();
         }
+        
+        // 檢查是否完成（備用檢查）
+        if (state.userInput.length >= state.targetText.length && state.gameActive) {
+            endGame();
+        }
     });
 
     dom.hiddenInput.addEventListener('input', (e) => {
         if (e.data) handleInput(e.data);
         dom.hiddenInput.value = '';
+        
+        // 檢查是否完成
+        if (state.userInput.length >= state.targetText.length && state.gameActive) {
+            endGame();
+        }
     });
 
     // Confirm button
@@ -736,6 +820,7 @@ function setupEventListeners() {
         state.targetText = content;
         dom.importModal.classList.add('hidden');
         initGame();
+        
         setTimeout(() => dom.hiddenInput.focus(), 100);
     });
 
@@ -745,7 +830,12 @@ function setupEventListeners() {
     });
 
     // Focus management - only allow game focus if logged in
-    window.addEventListener('click', () => {
+    window.addEventListener('click', (e) => {
+        // Don't redirect focus when clicking on input fields
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+            return;
+        }
+        
         // Always prioritize login modal
         if (!dom.loginModal.classList.contains('hidden')) {
             dom.loginAccount.focus();
@@ -770,7 +860,10 @@ function init() {
         initGame();
 
         // Show login modal on page load - login is required
+        // Only show if not already logged in
         setTimeout(() => {
+            if (state.student.name) return; // Already logged in, skip
+            
             const loginModal = document.getElementById('loginModal');
             const openLoginBtn = document.getElementById('openLoginBtn');
             const loginAccount = document.getElementById('loginAccount');

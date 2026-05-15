@@ -105,14 +105,14 @@
                         <span>輸入您的帳號與密碼</span>
                     </div>
                     <div id="loginError" class="login-error"></div>
-                    <div class="input-group-full">
-                        <label>登入帳號</label>
-                        <input type="text" id="loginAccount" class="login-input" placeholder="例如: asum22128" autocomplete="off">
-                    </div>
-                    <div class="input-group-full">
-                        <label>密碼 (ID)</label>
-                        <input type="password" id="loginPassword" class="login-input" placeholder="例如: 22507833" autocomplete="off">
-                    </div>
+                <div class="input-group-full">
+                    <label>登入帳號</label>
+                    <input type="text" id="loginAccount" class="login-input" placeholder="請輸入帳號" autocomplete="off">
+                </div>
+                <div class="input-group-full">
+                    <label>密碼 (ID)</label>
+                    <input type="password" id="loginPassword" class="login-input" placeholder="請輸入密碼">
+                </div>
                     <button id="loginBtn" class="btn-login">登入 🔓</button>
                 </div>
             </div>
@@ -137,6 +137,7 @@
                 <div class="input-group">
                     <label>粘貼文章內容</label>
                     <textarea id="articleInput" placeholder="在此粘貼練習文章..."></textarea>
+                    <div class="char-count-display"><span id="charCount">0</span> 字</div>
                 </div>
 
                 <button id="confirmBtn" class="btn-primary">開始挑戰 🚀</button>

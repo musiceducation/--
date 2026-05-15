@@ -5,7 +5,8 @@ const CONFIG = {
     SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbzAHrQvA7W-PSk9ZsP03EqYsoPzlMe9yD6mj37OOH5eP2_7iO_-ZEW3KHAJrZSH2JZzbA/exec',
     GAME_DURATION: 300,
     DEFAULT_TEXT: "Welcome to our challenge!\nPlease load your article to start.",
-    SHIFT_PATTERN: /[A-Z~!@#$%^&*()_+{}|:"<>?]/
+    SHIFT_PATTERN: /[A-Z~!@#$%^&*()_+{}|:"<>?]/,
+    DEFAULT_ARTICLE: "The quick brown fox jumps over the lazy dog.\nPack my box with five dozen liquor jugs.\nHow vexingly quick daft zebras jump!\nThe five boxing wizards jump quickly.\nSphinx of black quartz, judge my vow."
 };
 
 // ============================================
@@ -54,6 +55,9 @@ const STUDENT_ROSTER = {
 // Student Accounts (從 Excel 同步)
 // ============================================
 const STUDENT_ACCOUNTS = {
+    // 示範帳號（假帳號，不上傳成績）
+    'asum332452': { password: '12834132', name: '示範帳號', classId: 'DEMO' },
+    
     // 1年級
     'asum22128': { password: '22507833', name: '歐卓瑤', classId: '1A' },
     'asum22123': { password: '22549862', name: '區善妤', classId: '1A' },

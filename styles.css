@@ -330,11 +330,17 @@ body {
     border-radius: var(--radius-xl);
     padding: 0;
     border: 1px solid var(--border);
-    overflow: hidden;
+    overflow: auto;
     position: relative;
     box-shadow: var(--shadow);
     display: flex;
     flex-direction: column;
+    scroll-behavior: smooth;
+    scroll-snap-type: y proximity;
+}
+
+.text-area .line-block {
+    scroll-snap-align: start;
 }
 
 .text-area::-webkit-scrollbar {
@@ -431,7 +437,6 @@ body {
     border-bottom-color: #ca8a04;
     border-radius: 6px;
     box-shadow: 0 4px 12px rgba(234, 179, 8, 0.4), 0 0 20px rgba(234, 179, 8, 0.3);
-    animation: bounce 0.5s ease-in-out;
     transform: scale(1.08);
     z-index: 10;
     position: relative;
@@ -587,9 +592,10 @@ body {
     width: 100%;
     max-width: 480px;
     max-height: 90vh;
-    overflow: hidden;
+    overflow: visible;
     box-shadow: var(--shadow-xl);
     animation: slideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    position: relative;
 }
 
 .modal-header {
@@ -649,8 +655,10 @@ body {
 
 .modal-body {
     padding: 1.25rem;
-    overflow-y: auto;
-    max-height: calc(90vh - 100px);
+    overflow-y: visible;
+    max-height: none;
+    position: relative;
+    z-index: 1002;
 }
 
 /* Divider */
@@ -731,6 +739,13 @@ textarea:focus {
     outline: none;
     border-color: var(--primary);
     box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+.char-count-display {
+    text-align: right;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin-top: 0.5rem;
 }
 
 /* Buttons */
@@ -1030,13 +1045,31 @@ textarea:focus {
     font-size: 0.9rem;
     font-family: inherit;
     transition: all 0.2s ease;
-    background: white;
+    background-color: white;
+    color: #1f2937;
+    caret-color: #1f2937;
+}
+
+.login-input::placeholder {
+    color: #9ca3af;
+    -webkit-text-fill-color: #9ca3af;
 }
 
 .login-input:focus {
     outline: none;
     border-color: var(--primary);
     box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+/* Override ALL browser autofill styling */
+input.login-input:-webkit-autofill,
+input.login-input:-webkit-autofill:hover,
+input.login-input:-webkit-autofill:focus,
+input.login-input:-webkit-autofill:active {
+    -webkit-text-fill-color: #1f2937 !important;
+    -webkit-box-shadow: 0 0 0 1000px white inset !important;
+    background-color: white !important;
+    transition: background-color 5000s ease-in-out 0s;
 }
 
 .btn-login {
