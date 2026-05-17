@@ -363,21 +363,23 @@ function previewArticle() {
 }
 
 function scrollToCurrentChar() {
-    const currentChar = dom.textDisplay.querySelector('.current');
     const textContent = dom.textDisplay.querySelector('.text-content');
-    if (!currentChar || !textContent) return;
+    const currentChar = dom.textDisplay.querySelector('.current');
+    if (!textContent || !currentChar) return;
 
     const currentLine = currentChar.closest('.line-block');
     if (!currentLine) return;
 
     const lineTop = currentLine.offsetTop;
-    const lineHeight = currentLine.offsetHeight;
-    const scrollTop = textContent.scrollTop;
-    const clientHeight = textContent.clientHeight;
+    const containerTop = textContent.scrollTop;
+    const containerHeight = textContent.clientHeight;
 
-    const padding = lineHeight * 2;
-    if (lineTop + lineHeight > scrollTop + clientHeight - padding) {
-        textContent.scrollTop = lineTop + lineHeight - clientHeight + padding;
+    // Only scroll if current line is completely above visible area
+    const lineBottom = lineTop + currentLine.offsetHeight;
+    if (lineBottom > containerTop + containerHeight) {
+        textContent.scrollTop = lineBottom - containerHeight + 40;
+    } else if (lineTop < containerTop) {
+        textContent.scrollTop = lineTop - 40;
     }
 }
 
