@@ -371,15 +371,16 @@ function scrollToCurrentChar() {
     if (!currentLine) return;
 
     const lineTop = currentLine.offsetTop;
+    const lineHeight = currentLine.offsetHeight;
     const containerTop = textContent.scrollTop;
     const containerHeight = textContent.clientHeight;
 
-    // Only scroll if current line is completely above visible area
-    const lineBottom = lineTop + currentLine.offsetHeight;
-    if (lineBottom > containerTop + containerHeight) {
-        textContent.scrollTop = lineBottom - containerHeight + 40;
-    } else if (lineTop < containerTop) {
+    // Scroll so current line is at top, showing one line below for context
+    if (lineTop < containerTop) {
         textContent.scrollTop = lineTop - 40;
+    } else if (lineTop + lineHeight > containerTop + containerHeight - lineHeight) {
+        // Keep current line visible with one extra line below
+        textContent.scrollTop = lineTop - lineHeight - 40;
     }
 }
 
